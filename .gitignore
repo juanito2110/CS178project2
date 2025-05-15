@@ -1,0 +1,3 @@
+*.pem
+creds.py
+__pycache__/
