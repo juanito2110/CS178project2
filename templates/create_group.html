@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Project 2</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+</head>
+<body>
+  <nav class="navbar navbar-inverse">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="/index">Study Buddies</a>
+      </div>
+      <ul class="nav navbar-nav">
+        <li class="active"><a href="/index">Home</a></li>
+        <li><a href="#">Scheduled</a></li>
+        <!--<li><a href="#">Page 2</a></li>-->
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <!--<li><a href="#"><span class="glyphicon glyphicon-user"></span> Sign Up</a></li>-->
+        <li><a href="{{ url_for('logout') }}"><span class="glyphicon glyphicon-log-out    "></span> Logout</a></li>
+      </ul>
+    </div>
+  </nav>
+  {% block content %}
+  <div class="container mt-4">
+      <div class="row justify-content-center">
+          <div class="col-md-8">
+              <div class="card">
+                  <div class="card-header bg-primary text-white">
+                      <h4>Create New Study Group</h4>
+                  </div>
+                  <div class="card-body">
+                      <form method="POST" action="{{ url_for('create_group') }}">
+                          <!-- Remove form.hidden_tag() since we're not using Flask-WTF -->
+                          
+                          <div class="mb-3">
+                              <label for="name" class="form-label">Group Name</label>
+                              <input type="text" class="form-control" id="name" name="name" required>
+                          </div>
+                          
+                          <div class="mb-3">
+                              <label for="location" class="form-label">Meeting Place</label>
+                              <input type="text" class="form-control" id="location" name="location" required>
+                          </div>
+                          
+                          <div class="mb-3">
+                              <label for="description" class="form-label">What's this group for?</label>
+                              <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                          </div>
+                          
+                          <div class="mb-3">
+                              <label for="meeting_time" class="form-label">Meeting Times</label>
+                              <input type="text" class="form-control" id="meeting_time" name="meeting_time" 
+                                    placeholder="E.g., Mondays 3-5pm, Fridays 10am-12pm" required>
+                          </div>
+                          
+                          <div class="d-flex justify-content-between">
+                              <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                                  <i class="bi bi-arrow-left"></i> Cancel
+                              </a>
+                              <button type="submit" class="btn btn-primary">
+                                  <i class="bi bi-check-circle"></i> Create Group
+                              </button>
+                          </div>
+                      </form>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+  {% endblock %}
+</body>
+</html>
