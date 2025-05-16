@@ -55,13 +55,13 @@ def login():
 
     return render_template('login.html')
 
-@app.route('/index')
+"""@app.route('/index')
 @login_required
 def index():
   if 'user_id' not in session:
         return redirect(url_for('login'))
   
-  return render_template('index.html')
+  return render_template('index.html')"""
 
 @app.route('/logout')
 def logout():
@@ -130,7 +130,7 @@ def dashboard():
                 ':sk': 'GROUP#'
             }
         )
-        user_groups = response.get('Items', [])
+        user_groups = [item['SK'].split('#')[1] for item in response.get('Items', [])]
     except Exception as e:
         flash('Error loading your groups', 'danger')
         app.logger.error(f"Error loading user groups: {str(e)}")
@@ -163,39 +163,134 @@ def view_group(group_id):
         }
     ).get('Items', [])
 
-    # Check if current user is admin
-    is_admin = any(
-        member['SK'] == f'MEMBER#{session["user_id"]}' and member.get('role') == 'admin'
-        for member in members
-    )
+    # Fetch usernames for all members
+    members_with_names = []
+    for member in members:
+        user_id = member['SK'].split('#')[1]
+        # Get user details from USER table
+        user = table.get_item(
+            Key={
+                'PK': f'USER#{user_id}',
+                'SK': f'METADATA#{user_id}'
+            }
+        ).get('Item', {})
+        
+        members_with_names.append({
+            **member,
+            'username': user.get('username', user_id),  # Fallback to ID if no username
+            'name': user.get('name', 'Unknown')         # Optional: include real name
+        })
 
-    # Check if current user is a member
-    is_member = any(
-        member['SK'] == f'MEMBER#{session["user_id"]}'
-        for member in members
+    # Check current user's status
+    current_user_id = session['user_id']
+    current_member = next(
+        (m for m in members if m['SK'] == f'MEMBER#{current_user_id}'),
+        None
     )
+    
+    is_admin = current_member and current_member.get('role') == 'admin'
+    is_creator = group.get('admin_user_id') == current_user_id
+    is_member = current_member is not None or is_creator
 
     return render_template('view_group.html',
                          group=group,
-                         members=members,
+                         members=members_with_names,  # Updated members list
                          is_admin=is_admin,
-                         is_member=is_member)
+                         is_member=is_member,
+                         is_creator=is_creator)
 
 @app.route('/join_group/<group_id>')
 @login_required
 def join_group(group_id):
+    user_id = session['user_id']
+    
+    # Check if user is already a member or admin
+    existing_membership = table.get_item(
+        Key={
+            'PK': f'GROUP#{group_id}',
+            'SK': f'MEMBER#{user_id}'
+        }
+    ).get('Item')
+    
+    if existing_membership:
+        if existing_membership.get('role') == 'admin':
+            flash('You are the admin of this group', 'info')
+        else:
+            flash('You are already a member of this group', 'info')
+        return redirect(url_for('view_group', group_id=group_id))
+    
     try:
-        add_member_to_group(group_id, session['user_id'])
+        # Add as regular member
+        table.put_item(
+            Item={
+                'PK': f'GROUP#{group_id}',
+                'SK': f'MEMBER#{user_id}',
+                'join_date': datetime.now().isoformat(),
+                'role': 'member'
+            }
+        )
+        
+        # Add reverse lookup
+        table.put_item(
+            Item={
+                'PK': f'USER#{user_id}',
+                'SK': f'GROUP#{group_id}',
+                'group_name': 'New Group'  # You might want to fetch the actual name
+            }
+        )
+        
         flash('Successfully joined the group!', 'success')
     except Exception as e:
         flash('Error joining group', 'danger')
         app.logger.error(f"Join group error: {str(e)}")
+    
     return redirect(url_for('view_group', group_id=group_id))
+
+@app.route('/leave_group/<group_id>')
+@login_required
+def leave_group(group_id):
+    user_id = session['user_id']
+    
+    # Prevent admins from accidentally leaving
+    membership = table.get_item(
+        Key={
+            'PK': f'GROUP#{group_id}',
+            'SK': f'MEMBER#{user_id}'
+        }
+    ).get('Item')
+    
+    if membership and membership.get('role') == 'admin':
+        flash('Admins cannot leave the group. Transfer admin rights first.', 'danger')
+        return redirect(url_for('view_group', group_id=group_id))
+    
+    try:
+        # Remove from group members
+        table.delete_item(
+            Key={
+                'PK': f'GROUP#{group_id}',
+                'SK': f'MEMBER#{user_id}'
+            }
+        )
+        
+        # Remove reverse lookup
+        table.delete_item(
+            Key={
+                'PK': f'USER#{user_id}',
+                'SK': f'GROUP#{group_id}'
+            }
+        )
+        
+        flash('You have left the group', 'success')
+    except Exception as e:
+        flash('Error leaving group', 'danger')
+        app.logger.error(f"Leave group error: {str(e)}")
+    
+    return redirect(url_for('dashboard'))
 
 @app.route('/remove_member/<group_id>/<user_id>')
 @login_required
 def remove_member(group_id, user_id):
-    success = remove_member(group_id, user_id, session['user_id'])
+    success = remove_group_member(group_id, user_id, session['user_id'])
     if success:
         flash('Member removed successfully', 'success')
     else:

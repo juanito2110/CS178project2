@@ -3,83 +3,116 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Project 2</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <title>Study Groups Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Select2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
 </head>
 <body>
-  <nav class="navbar navbar-inverse">
+  <!-- Updated Navbar with Bootstrap 5 -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
-      <div class="navbar-header">
-        <a class="navbar-brand" href="/index">Study Buddies</a>
+      <a class="navbar-brand" href="{{ url_for('dashboard') }}">Study Buddies</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link active" href="{{ url_for('dashboard') }}">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Scheduled</a>
+          </li>
+        </ul>
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('logout') }}">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+          </li>
+        </ul>
       </div>
-      <ul class="nav navbar-nav">
-        <li class="active"><a href="/index">Home</a></li>
-        <li><a href="#">Scheduled</a></li>
-        <!--<li><a href="#">Page 2</a></li>-->
-      </ul>
-      <ul class="nav navbar-nav navbar-right">
-        <!--<li><a href="#"><span class="glyphicon glyphicon-user"></span> Sign Up</a></li>-->
-        <li><a href="{{ url_for('logout') }}"><span class="glyphicon glyphicon-log-out    "></span> Logout</a></li>
-      </ul>
     </div>
   </nav>
-  {% block content %}
-<div class="container mt-4">
+
+  <div class="container mt-4">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>All Study Groups</h2>
-        <a href="{{ url_for('create_group') }}" class="btn btn-success">
-            <i class="bi bi-plus-circle"></i> Create New Group
-        </a>
+      <h2>All Study Groups</h2>
+      <a href="{{ url_for('create_group') }}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Create New Group
+      </a>
     </div>
 
     {% if not all_groups %}
-    <div class="alert alert-info">
+      <div class="alert alert-info">
         No study groups found. Be the first to create one!
-    </div>
+      </div>
     {% else %}
-    <div class="row row-cols-1 row-cols-md-2 g-4">
+      <div class="row g-4">
         {% for group in all_groups %}
-        <div class="col">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">{{ group.name }}</h5>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">{{ group.description }}</p>
-                    <ul class="list-group list-group-flush mb-3">
-                        <li class="list-group-item">
-                            <i class="bi bi-geo-alt"></i> {{ group.location }}
-                        </li>
-                        <li class="list-group-item">
-                            <i class="bi bi-clock"></i> {{ group.meeting_time }}
-                        </li>
-                    </ul>
-                </div>
-                <div class="card-footer bg-transparent">
-                    <div class="d-flex justify-content-between">
-                        <a href="{{ url_for('view_group', group_id=group.PK.split('#')[1]) }}" 
-                           class="btn btn-outline-primary btn-sm">
-                            <i class="bi bi-eye"></i> View Group
-                        </a>
-                        {% if not group['PK']|is_member(user_groups) %}
-                        <a href="{{ url_for('join_group', group_id=group.PK.split('#')[1]) }}" 
-                           class="btn btn-success btn-sm">
-                            <i class="bi bi-plus-circle"></i> Join
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="card h-100 shadow">
+            <div class="card-header bg-primary text-white">
+              <h5 class="card-title mb-0">{{ group['name'] }}</h5>
             </div>
+            <div class="card-body">
+              <p class="card-text">{{ group['description'] }}</p>
+              <ul class="list-group list-group-flush mb-3">
+                <li class="list-group-item">
+                  <i class="bi bi-geo-alt-fill text-primary"></i> 
+                  <strong>Location:</strong> {{ group['location'] }}
+                </li>
+                <li class="list-group-item">
+                  <i class="bi bi-clock-fill text-primary"></i> 
+                  <strong>Meeting Time:</strong> {{ group['meeting_time'] }}
+                </li>
+              </ul>
+            </div>
+            <div class="card-footer bg-transparent">
+              <div class="d-flex justify-content-between">
+                <a href="{{ url_for('view_group', group_id=group['PK'].split('#')[1]) }}" 
+                   class="btn btn-outline-primary btn-sm">
+                  <i class="bi bi-eye-fill"></i> View
+                </a>
+                
+                {% if group['PK'].split('#')[1] in user_groups %}
+                <span class="btn btn-outline-success btn-sm disabled">
+                  <i class="bi bi-check-circle-fill"></i> Joined
+                </span>
+                {% else %}
+                <a href="{{ url_for('join_group', group_id=group['PK'].split('#')[1]) }}" 
+                   class="btn btn-success btn-sm">
+                  <i class="bi bi-plus-circle-fill"></i> Join
+                </a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
         </div>
         {% endfor %}
-    </div>
+      </div>
     {% endif %}
-</div>
-{% endblock %}
+  </div>
+
+  <!-- JavaScript at the end of body -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 </body>
 </html>

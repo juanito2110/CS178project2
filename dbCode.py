@@ -71,6 +71,7 @@ def check_password(username, password):
 def create_study_group(admin_user_id, name, location, description, meeting_time):
     group_id = str(uuid.uuid4())
     
+    # Add group metadata
     table.put_item(
         Item={
             'PK': f'GROUP#{group_id}',
@@ -80,18 +81,28 @@ def create_study_group(admin_user_id, name, location, description, meeting_time)
             'description': description,
             'meeting_time': meeting_time,
             'admin_user_id': admin_user_id,
-            'created_at': datetime.now().isoformat(),
-            'member_count': 1  # Starts with creator
+            'created_at': datetime.now().isoformat()
         }
     )
     
-    # Add creator as admin member
+    # Add creator as admin member (with explicit role)
     table.put_item(
         Item={
             'PK': f'GROUP#{group_id}',
             'SK': f'MEMBER#{admin_user_id}',
             'join_date': datetime.now().isoformat(),
-            'role': 'admin'
+            'role': 'admin',  # Explicitly set role
+            'user_id': admin_user_id  # Additional identifier
+        }
+    )
+    
+    # Add reverse lookup
+    table.put_item(
+        Item={
+            'PK': f'USER#{admin_user_id}',
+            'SK': f'GROUP#{group_id}',
+            'group_name': name,
+            'role': 'admin'  # Store role in reverse lookup too
         }
     )
     
@@ -135,7 +146,7 @@ def get_group_members(group_id):
     )
     return response.get('Items', [])
 
-def remove_member(group_id, user_id, requester_user_id):
+def remove_group_member(group_id, user_id, requester_user_id):
     # Verify requester is admin
     admin_check = table.get_item(
         Key={
@@ -156,11 +167,11 @@ def remove_member(group_id, user_id, requester_user_id):
     )
     
     # Optional: Remove reverse lookup
-    """table.delete_item(
+    table.delete_item(
         Key={
             'PK': f'USER#{user_id}',
             'SK': f'GROUP#{group_id}'
         }
-    )"""
+    )
     
     return True
