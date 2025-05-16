@@ -175,3 +175,14 @@ def remove_group_member(group_id, user_id, requester_user_id):
     )
     
     return True
+
+def get_meeting_status(meeting_time):
+    """Determine if meeting is upcoming, today, or past"""
+    # Implement your logic here based on meeting_time
+    # This is a placeholder - you'll need to parse the meeting_time
+    return 'upcoming'
+
+def get_next_meeting(meeting_time):
+    """Return formatted next meeting time"""
+    # Implement your parsing logic here
+    return meeting_time  # or formatted version

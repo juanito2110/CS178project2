@@ -55,14 +55,6 @@ def login():
 
     return render_template('login.html')
 
-"""@app.route('/index')
-@login_required
-def index():
-  if 'user_id' not in session:
-        return redirect(url_for('login'))
-  
-  return render_template('index.html')"""
-
 @app.route('/logout')
 def logout():
     session.clear()
@@ -286,6 +278,56 @@ def leave_group(group_id):
         app.logger.error(f"Leave group error: {str(e)}")
     
     return redirect(url_for('dashboard'))
+
+@app.route('/scheduled')
+@login_required
+def scheduled():
+    # Get groups where current user is a member
+    user_groups = []
+    try:
+        # Query reverse lookup to find user's groups
+        response = table.query(
+            KeyConditionExpression='PK = :pk AND begins_with(SK, :sk)',
+            ExpressionAttributeValues={
+                ':pk': f'USER#{session["user_id"]}',
+                ':sk': 'GROUP#'
+            }
+        )
+        
+        # Get details for each group
+        for item in response.get('Items', []):
+            group_id = item['SK'].split('#')[1]
+            group_data = table.get_item(
+                Key={
+                    'PK': f'GROUP#{group_id}',
+                    'SK': f'METADATA#{group_id}'
+                }
+            ).get('Item', {})
+            
+            # Get membership details
+            membership = table.get_item(
+                Key={
+                    'PK': f'GROUP#{group_id}',
+                    'SK': f'MEMBER#{session["user_id"]}'
+                }
+            ).get('Item', {})
+            
+            # Add meeting status (you'll need to implement this logic)
+            meeting_status = get_meeting_status(group_data.get('meeting_time'))
+            
+            user_groups.append({
+                **group_data,
+                'role': membership.get('role', 'member'),
+                'meeting_status': meeting_status,
+                'next_meeting': get_next_meeting(group_data.get('meeting_time'))
+            })
+            
+    except Exception as e:
+        flash('Error loading your groups', 'danger')
+        app.logger.error(f"Error loading scheduled groups: {str(e)}")
+    
+    return render_template('scheduled.html',
+                         user_groups=user_groups)
 
 @app.route('/remove_member/<group_id>/<user_id>')
 @login_required
